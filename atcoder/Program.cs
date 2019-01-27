@@ -27,15 +27,20 @@ class K
 	void Solve()
 	{
 		var N = F;
-		var s = new string[3];
-		for (var i = 0; i < 3; i++) s[i] = Str;
-		var ans = 0;
+		var t = new Pair[N];
+		for (var i = 0; i < N; i++) { var I = GL; t[i] = new Pair(I[0], I[1]); }
+		Array.Sort(t, (x, y) => -(x.X + x.Y).CompareTo(y.X + y.Y));
+		var ans = 0L;
 		for (var i = 0; i < N; i++)
 		{
-			var c = new HashSet<char>();
-			for (var j = 0; j < 3; j++) c.Add(s[j][i]);
-			ans += c.Count - 1;
+			if (i % 2 == 0) ans += t[i].X;
+			else ans -= t[i].Y;
 		}
 		WriteLine(ans);
 	}
+}
+struct Pair
+{
+	public readonly long X, Y;
+	public Pair(long x, long y) { X = x; Y = y; }
 }
