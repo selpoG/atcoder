@@ -26,7 +26,16 @@ class K
 	}
 	void Solve()
 	{
-		var I = G;
-		WriteLine($"{Min(I[1], I[2])} {Max(0, I[1] + I[2] - I[0])}");
+		var N = F;
+		var s = new string[3];
+		for (var i = 0; i < 3; i++) s[i] = Str;
+		var ans = 0;
+		for (var i = 0; i < N; i++)
+		{
+			var c = new HashSet<char>();
+			for (var j = 0; j < 3; j++) c.Add(s[j][i]);
+			ans += c.Count - 1;
+		}
+		WriteLine(ans);
 	}
 }
