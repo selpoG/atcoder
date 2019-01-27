@@ -1,10 +1,9 @@
-﻿using System.IO;
-using System.Linq;
-using static System.Console;
-using System.Text;
+﻿using System;
 using System.Collections.Generic;
-using System;
-
+using System.IO;
+using System.Linq;
+using System.Text;
+using static System.Console;
 class K
 {
 	static int[] G => ReadLine().Split().Select(int.Parse).ToArray();
@@ -20,21 +19,18 @@ class K
 			int a = I[0] - 1, b = I[1] - 1;
 			uf.Unite(a, b);
 		}
-		var par = new int[N];
-		for (var i = 0; i < N; i++) par[i] = uf.Find(i);
-		var Q = G[0];
+		var Q = int.Parse(ReadLine());
 		var sb = new StringBuilder();
 		while (Q-- > 0)
 		{
 			I = G;
-			int x = I[0] - 1, y = I[1] - 1, l = 0, r = M + 1;
-			if (par[x] != par[y]) { sb.AppendLine("-1"); continue; }
+			int x = I[0] - 1, y = I[1] - 1, z = I[2], l = 0, r = M + 1;
 			while (l < r)
 			{
-				var i = (l + r) / 2;
-				int p = uf.Find(i, x), q = uf.Find(i, y);
-				if (p == q) r = i;
-				else l = i + 1;
+				var t = (l + r) / 2;
+				int p = uf.Find(t, x), q = uf.Find(t, y), s = p == q ? uf.GetSize(t, p) : uf.GetSize(t, p) + uf.GetSize(t, q);
+				if (s >= z) r = t;
+				else l = t + 1;
 			}
 			sb.AppendLine(l.ToString());
 		}
