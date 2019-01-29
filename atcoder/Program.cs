@@ -24,106 +24,76 @@ class K
 		Solve();
 		Out.Flush();
 	}
-	int V;
 	void Solve()
 	{
-		var I = G;
-		V = I[0]; var E = I[1];
-		var X = G;
-		var es = new Edge[E];
-		for (var e = 0; e < E; e++) { I = G; es[e] = new Edge(I[0] - 1, I[1] - 1, I[2], e); }
-		Array.Sort(es);
-		var uf = new UnionFindTree(V, X);
-		foreach (var e in es) uf.Unite(e.From, e.To);
-		var ok = new List<Edge>();
-		var mark = new bool[E];
-		for (var j = 0; j < E; j++)
+		var I = GL;
+		var M = (int)I[1];
+		var p = new long[M];
+		var a = new double[M];
+		var b = new double[M];
+		for (var i = 0; i < M; i++)
 		{
-			var e = es[j];
-			var t = j + 1;
-			if (uf.GetSize(t, e.From) >= e.Cost) { ok.Add(e); mark[e.Id] = true; }
+			var S = Strs;
+			p[i] = long.Parse(S[0]);
+			a[i] = double.Parse(S[1]);
+			b[i] = double.Parse(S[2]);
 		}
-		ok.Reverse();
-		var g = new List<Edge>[V];
-		for (var i = 0; i < V; i++) g[i] = new List<Edge>();
-		foreach (var e in es) { g[e.From].Add(e); g[e.To].Add(e.Reversed); }
-		for (var i = 0; i < V; i++) g[i].Sort((x, y) => y.CompareTo(x));
-		var used = new bool[V];
-		foreach (var e in ok)
+		var ks = new SortedSet<long>(p).ToList();
+		var n = ks.Count;
+		var id = new Dictionary<long, int>();
+		for (var i = 0; i < n; i++) id[ks[i]] = i;
+		var seg = new SegmentTree(n);
+		double min = 1.0, max = 1.0;
+		for (var i = 0; i < M; i++)
 		{
-			var st = new Stack<int>();
-			st.Push(e.From);
-			st.Push(e.To);
-			while (st.Count > 0)
-			{
-				var u = st.Pop();
-				used[u] = true;
-				var j = g[u].Count - 1;
-				while (j >= 0 && g[u][j].Cost <= e.Cost)
-				{
-					if (!used[g[u][j].To]) st.Push(g[u][j].To);
-					mark[g[u][j].Id] = true;
-					j--;
-				}
-				g[u].RemoveRange(j + 1, g[u].Count - j - 1);
-			}
+			seg.Update(id[p[i]], new Node(a[i], b[i]));
+			var val = seg.Range(0, n).ApplyTo(1);
+			min = Min(min, val);
+			max = Max(max, val);
 		}
-		WriteLine(mark.Count(c => !c));
+		WriteLine(min);
+		WriteLine(max);
 	}
 }
-struct Edge : IComparable<Edge>
+struct Node
 {
-	public readonly int From, To, Cost, Id;
-	public Edge(int f, int t, int c, int i) { From = f; To = t; Cost = c; Id = i; }
-	public int CompareTo(Edge other) => Cost.CompareTo(other.Cost);
-	public override string ToString() => $"{From} -> {To}: {Cost} (id: {Id})";
-	public Edge Reversed => new Edge(To, From, Cost, Id);
+	public static readonly Node Unit = new Node(1, 0);
+	public static Node Compose(Node p, Node q)
+	{
+		// q(p(x)) = q(p.A*x+p.B) = q.A*(p.A*x+p.B)+q.B
+		return new Node(p.A * q.A, q.A * p.B + q.B);
+	}
+	public readonly double A, B;
+	public Node(double a, double b) { A = a; B = b; }
+	public double ApplyTo(double x) => A * x + B;
+	public override string ToString() => $"{A}*x+{B}";
 }
-struct Pair
+class SegmentTree
 {
-	public readonly int X;
-	public readonly long Y;
-	public Pair(int x, long y) { X = x; Y = y; }
-}
-class UnionFindTree
-{
-	int now;
-	readonly int[] par, rank, time;
-	readonly long[] size;
-	readonly List<Pair>[] sizeHist;
-	public UnionFindTree(int N, int[] X)
+	readonly int N;
+	readonly Node[] seg;
+	public SegmentTree(int n)
 	{
-		par = new int[N];
-		rank = new int[N];
-		time = new int[N];
-		size = new long[N];
-		sizeHist = new List<Pair>[N];
-		for (var i = 0; i < N; i++) { par[i] = i; time[i] = int.MaxValue; sizeHist[i] = new List<Pair> { new Pair(0, X[i]) }; size[i] = X[i]; }
+		N = 1;
+		while (N < n) N <<= 1;
+		seg = new Node[2 * N - 1];
+		for (var i = 0; i < 2 * N - 1; i++) seg[i] = Node.Unit;
 	}
-	public int Find(int x) => x == par[x] ? x : Find(par[x]);
-	public int Find(int t, int x) => time[x] > t ? x : Find(t, par[x]);
-	public void Unite(int x, int y)
+	public void Update(int index, Node value)
 	{
-		now++; x = Find(now, x); y = Find(now, y);
-		if (x == y) return;
-		if (rank[x] < rank[y]) { var z = x; x = y; y = z; }
-		par[y] = x; time[y] = now; size[x] += size[y]; sizeHist[x].Add(new Pair(now, size[x]));
-		if (rank[x] == rank[y]) rank[x]++;
-	}
-	public long GetSize(int t, int x)
-	{
-		x = Find(t, x);
-		var i = FirstBinary(0, sizeHist[x].Count, j => sizeHist[x][j].X > t) - 1;
-		return sizeHist[x][i].Y;
-	}
-	public static int FirstBinary(int min, int max, Predicate<int> pred)
-	{
-		while (min < max)
+		index += N - 1;
+		seg[index] = value;
+		while (index > 0)
 		{
-			var mid = (min + max) / 2;
-			if (pred(mid)) max = mid;
-			else min = mid + 1;
+			index = (index - 1) / 2;
+			seg[index] = Node.Compose(seg[index * 2 + 1], seg[index * 2 + 2]);
 		}
-		return min;
+	}
+	public Node Range(int from, int to) => Range(from, to, 0, 0, N);
+	Node Range(int from, int to, int node, int l, int r)
+	{
+		if (to <= l || r <= from) return Node.Unit;
+		if (from <= l && r <= to) return seg[node];
+		return Node.Compose(Range(from, to, 2 * node + 1, l, (l + r) >> 1), Range(from, to, 2 * node + 2, (l + r) >> 1, r));
 	}
 }
