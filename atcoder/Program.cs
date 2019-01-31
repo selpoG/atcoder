@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static System.Console;
 using static System.Math;
@@ -26,74 +27,60 @@ class K
 	}
 	void Solve()
 	{
-		var I = GL;
-		var M = (int)I[1];
-		var p = new long[M];
-		var a = new double[M];
-		var b = new double[M];
-		for (var i = 0; i < M; i++)
+		var N = F;
+		var a = new ABC();
+		var hoge = 0;
+		//for (var k = 0; k <= N * (N - 1) / 2; k++)
+		for (var k = (N - 5) * (N - 5) / 3; k <= N * N / 3; k++)
 		{
-			var S = Strs;
-			p[i] = long.Parse(S[0]);
-			a[i] = double.Parse(S[1]);
-			b[i] = double.Parse(S[2]);
+			var s = a.createString(N, k);
+			if (s != "")
+			{
+				//var c = CountPair(s);
+				//WriteLine($"f({N}, {k}) = {s} => {c}" + (c == k ? "" : " ERROR"));
+				hoge++;
+			}
 		}
-		var ks = new SortedSet<long>(p).ToList();
-		var n = ks.Count;
-		var id = new Dictionary<long, int>();
-		for (var i = 0; i < n; i++) id[ks[i]] = i;
-		var seg = new SegmentTree(n);
-		double min = 1.0, max = 1.0;
-		for (var i = 0; i < M; i++)
-		{
-			seg.Update(id[p[i]], new Node(a[i], b[i]));
-			var val = seg.Range(0, n).ApplyTo(1);
-			min = Min(min, val);
-			max = Max(max, val);
-		}
-		WriteLine(min);
-		WriteLine(max);
+		WriteLine(hoge);
+	}
+	int CountPair(string s)
+	{
+		var cnt = 0;
+		for (var i = 0; i < s.Length; i++) for (var j = i + 1; j < s.Length; j++) if (s[i] < s[j]) cnt++;
+		return cnt;
 	}
 }
-struct Node
+class ABC
 {
-	public static readonly Node Unit = new Node(1, 0);
-	public static Node Compose(Node p, Node q)
+	void createString2(int N, int K, StringBuilder sb)
 	{
-		// q(p(x)) = q(p.A*x+p.B) = q.A*(p.A*x+p.B)+q.B
-		return new Node(p.A * q.A, q.A * p.B + q.B);
-	}
-	public readonly double A, B;
-	public Node(double a, double b) { A = a; B = b; }
-	public double ApplyTo(double x) => A * x + B;
-	public override string ToString() => $"{A}*x+{B}";
-}
-class SegmentTree
-{
-	readonly int N;
-	readonly Node[] seg;
-	public SegmentTree(int n)
-	{
-		N = 1;
-		while (N < n) N <<= 1;
-		seg = new Node[2 * N - 1];
-		for (var i = 0; i < 2 * N - 1; i++) seg[i] = Node.Unit;
-	}
-	public void Update(int index, Node value)
-	{
-		index += N - 1;
-		seg[index] = value;
-		while (index > 0)
+		var k = N * N / 4;
+		if (K == k) { sb.Append('B', N / 2); sb.Append('C', (N + 1) / 2); return; }
+		if (K == 0) { sb.Append('C', N); return; }
+		var h = N / 2;
+		var l = 0;
+		for (var i = 0; i < h; i++)
 		{
-			index = (index - 1) / 2;
-			seg[index] = Node.Compose(seg[index * 2 + 1], seg[index * 2 + 2]);
+			var k2 = k - (N - h);
+			if (k2 < K) { var x = k - K; sb.Append('C', l); sb.Append('B', N - h - x); sb.Append("C"); sb.Append('B', x); sb.Append('C', h - l - 1); return; }
+			k = k2; l++;
 		}
+		throw new Exception();
 	}
-	public Node Range(int from, int to) => Range(from, to, 0, 0, N);
-	Node Range(int from, int to, int node, int l, int r)
+	public string createString(int N, int K)
 	{
-		if (to <= l || r <= from) return Node.Unit;
-		if (from <= l && r <= to) return seg[node];
-		return Node.Compose(Range(from, to, 2 * node + 1, l, (l + r) >> 1), Range(from, to, 2 * node + 2, (l + r) >> 1, r));
+		var sb = new StringBuilder();
+		createString(N, K, sb);
+		return sb.ToString();
+	}
+	void createString(int N, int K, StringBuilder sb)
+	{
+		var lim = N * N / 3;
+		if (K > lim) return;
+		var lim2 = (N - 1) * (N - 1) / 3;
+		if (N >= 1 && K <= lim2) { sb.Append("C"); createString(N - 1, K, sb); return; }
+		var x = 2 * N / 3;
+		sb.Append('A', N - x);
+		createString2(x, K - x * (N - x), sb);
 	}
 }
