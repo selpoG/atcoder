@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static System.Console;
 using static System.Math;
@@ -25,62 +24,65 @@ class K
 		Solve();
 		Out.Flush();
 	}
+	int[,] cnt;
+	int Count(int b, int x0, int x1, int y0, int y1)
+	{
+		if (b == 0) return (x1 - x0) * (y1 - y0) - Count(1, x0, x1, y0, y1);
+		return cnt[x1, y1] - cnt[x0, y1] - cnt[x1, y0] + cnt[x0, y0];
+	}
 	void Solve()
 	{
 		var N = F;
-		var a = new ABC();
-		var hoge = 0;
-		//for (var k = 0; k <= N * (N - 1) / 2; k++)
-		for (var k = (N - 5) * (N - 5) / 3; k <= N * N / 3; k++)
+		var map = new BitArray[N];
+		for (var y = 0; y < N; y++)
 		{
-			var s = a.createString(N, k);
-			if (s != "")
+			map[y] = new BitArray(N);
+			var S = Str;
+			for (var x = 0; x < N; x += 4)
 			{
-				//var c = CountPair(s);
-				//WriteLine($"f({N}, {k}) = {s} => {c}" + (c == k ? "" : " ERROR"));
-				hoge++;
+				var c = S[x / 4];
+				var n = char.IsDigit(c) ? c - '0' : c - 'A' + 10;
+				for (var i = 0; i < 4; i++) map[y][x + 3 - i] = ((n >> i) & 1) != 0;
 			}
 		}
-		WriteLine(hoge);
+		cnt = new int[N + 1, N + 1];
+		for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) cnt[x + 1, y + 1] = cnt[x + 1, y] + cnt[x, y + 1] - cnt[x, y] + (map[y][x] ? 1 : 0);
+		var used = new BitArray[N];
+		for (var y = 0; y < N; y++) used[y] = new BitArray(N);
+		var sz = new HashSet<int>();
+		for (var x = 0; x < N; x++)
+			for (var y = 0; y < N; y++)
+				if (!used[y][x])
+				{
+					var s = 1;
+					var b = map[y][x] ? 0 : 1;
+					while (x + s < N && y + s < N)
+					{
+						if (Count(b, x, x + s + 1, y, y + s + 1) == 0) s++;
+						else break;
+					}
+					for (var p = x; p < x + s; p++) for (var q = y; q < y + s; q++) used[q][p] = true;
+					sz.Add(s);
+				}
+		WriteLine(GCD(sz.ToArray()));
 	}
-	int CountPair(string s)
+	public static int GCD(params int[] ns)
 	{
-		var cnt = 0;
-		for (var i = 0; i < s.Length; i++) for (var j = i + 1; j < s.Length; j++) if (s[i] < s[j]) cnt++;
-		return cnt;
+		var ans = ns[0];
+		foreach (var x in ns.Skip(1)) ans = GCD(ans, x);
+		return ans;
+	}
+	public static int GCD(int n, int m)
+	{
+		while (m > 0) { var c = n % m; n = m; m = c; }
+		return n;
 	}
 }
-class ABC
+class BitArray
 {
-	void createString2(int N, int K, StringBuilder sb)
-	{
-		var k = N * N / 4;
-		if (K == k) { sb.Append('B', N / 2); sb.Append('C', (N + 1) / 2); return; }
-		if (K == 0) { sb.Append('C', N); return; }
-		var h = N / 2;
-		var l = 0;
-		for (var i = 0; i < h; i++)
-		{
-			var k2 = k - (N - h);
-			if (k2 < K) { var x = k - K; sb.Append('C', l); sb.Append('B', N - h - x); sb.Append("C"); sb.Append('B', x); sb.Append('C', h - l - 1); return; }
-			k = k2; l++;
-		}
-		throw new Exception();
-	}
-	public string createString(int N, int K)
-	{
-		var sb = new StringBuilder();
-		createString(N, K, sb);
-		return sb.ToString();
-	}
-	void createString(int N, int K, StringBuilder sb)
-	{
-		var lim = N * N / 3;
-		if (K > lim) return;
-		var lim2 = (N - 1) * (N - 1) / 3;
-		if (N >= 1 && K <= lim2) { sb.Append("C"); createString(N - 1, K, sb); return; }
-		var x = 2 * N / 3;
-		sb.Append('A', N - x);
-		createString2(x, K - x * (N - x), sb);
-	}
+	readonly int N;
+	readonly sbyte[] bit;
+	public BitArray(int n) { N = n; var l = (N + 7) / 8; bit = new sbyte[l]; }
+	const sbyte One = 1;
+	public bool this[int n] { get { return (bit[n / 8] & (One << (7 - n % 8))) != 0; } set { if (value) bit[n / 8] |= (sbyte)(One << (7 - n % 8)); else bit[n / 8] &= (sbyte)~(One << (7 - n % 8)); } }
 }
