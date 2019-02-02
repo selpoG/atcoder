@@ -24,65 +24,63 @@ class K
 		Solve();
 		Out.Flush();
 	}
-	int[,] cnt;
-	int Count(int b, int x0, int x1, int y0, int y1)
-	{
-		if (b == 0) return (x1 - x0) * (y1 - y0) - Count(1, x0, x1, y0, y1);
-		return cnt[x1, y1] - cnt[x0, y1] - cnt[x1, y0] + cnt[x0, y0];
-	}
 	void Solve()
 	{
 		var N = F;
-		var map = new BitArray[N];
-		for (var y = 0; y < N; y++)
+		var offers = new (int a, int b, int k)[N];
+		for (var i = 0; i < N; i++) { var I = G; offers[i] = (I[0], I[1], I[2]); }
+		var mat = new long[N, N];
+		for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) mat[i, j] = -Max(0, offers[i].a - (long)offers[i].b * Min(offers[i].k, j));
+		var v = Hungarian(mat);
+		var ans = 0L;
+		for (var i = 0; i < N; i++) ans += mat[i, v[i]];
+		WriteLine(-ans);
+	}
+	static T[] ConstantArray<T>(int n, T val) { var a = new T[n]; for (var i = 0; i < n; i++) a[i] = val; return a; }
+	const long Inf = 4011686018427387913L;
+	// n <= m, n 人 を m 個の仕事に重複なく割り当てる
+	// 人 i を仕事 j に割り当てたときの損失が a[i][j]
+	// 最小の損失を与える割当を返す
+	int[] Hungarian(long[,] a)
+	{
+		int n = a.GetLength(0), m = a.GetLength(1);
+		var toright = ConstantArray(n, -1);
+		var toleft = ConstantArray(m, -1);
+		var ofsleft = ConstantArray(n, 0L);
+		var ofsright = ConstantArray(m, 0L);
+		for (int r = 0; r < n; r++)
 		{
-			map[y] = new BitArray(N);
-			var S = Str;
-			for (var x = 0; x < N; x += 4)
+			var left = ConstantArray(n, false);
+			var right = ConstantArray(m, false);
+			var trace = ConstantArray(m, -1);
+			var ptr = ConstantArray(m, r);
+			left[r] = true;
+			while (true)
 			{
-				var c = S[x / 4];
-				var n = char.IsDigit(c) ? c - '0' : c - 'A' + 10;
-				for (var i = 0; i < 4; i++) map[y][x + 3 - i] = ((n >> i) & 1) != 0;
+				var d = Inf;
+				for (int j = 0; j < m; j++) if (!right[j]) d = Min(d, a[ptr[j], j] + ofsleft[ptr[j]] + ofsright[j]);
+				for (int i = 0; i < n; i++) if (left[i]) ofsleft[i] -= d;
+				for (int j = 0; j < m; j++) if (right[j]) ofsright[j] += d;
+				int b = -1;
+				for (int j = 0; j < m; j++) if (!right[j] && a[ptr[j], j] + ofsleft[ptr[j]] + ofsright[j] == 0) b = j;
+				trace[b] = ptr[b];
+				int c = toleft[b];
+				if (c < 0)
+				{
+					while (b >= 0)
+					{
+						int q = trace[b];
+						int z = toright[q];
+						toleft[b] = q;
+						toright[q] = b;
+						b = z;
+					}
+					break;
+				}
+				right[b] = left[c] = true;
+				for (int j = 0; j < m; j++) if (a[c, j] + ofsleft[c] < a[ptr[j], j] + ofsleft[ptr[j]]) ptr[j] = c;
 			}
 		}
-		cnt = new int[N + 1, N + 1];
-		for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) cnt[x + 1, y + 1] = cnt[x + 1, y] + cnt[x, y + 1] - cnt[x, y] + (map[y][x] ? 1 : 0);
-		var used = new BitArray[N];
-		for (var y = 0; y < N; y++) used[y] = new BitArray(N);
-		var sz = new HashSet<int>();
-		for (var x = 0; x < N; x++)
-			for (var y = 0; y < N; y++)
-				if (!used[y][x])
-				{
-					var s = 1;
-					var b = map[y][x] ? 0 : 1;
-					while (x + s < N && y + s < N)
-					{
-						if (Count(b, x, x + s + 1, y, y + s + 1) == 0) s++;
-						else break;
-					}
-					for (var p = x; p < x + s; p++) for (var q = y; q < y + s; q++) used[q][p] = true;
-					sz.Add(s);
-				}
-		WriteLine(GCD(sz.ToArray()));
+		return toright;
 	}
-	public static int GCD(params int[] ns)
-	{
-		var ans = ns[0];
-		foreach (var x in ns.Skip(1)) ans = GCD(ans, x);
-		return ans;
-	}
-	public static int GCD(int n, int m)
-	{
-		while (m > 0) { var c = n % m; n = m; m = c; }
-		return n;
-	}
-}
-class BitArray
-{
-	readonly int N;
-	readonly sbyte[] bit;
-	public BitArray(int n) { N = n; var l = (N + 7) / 8; bit = new sbyte[l]; }
-	const sbyte One = 1;
-	public bool this[int n] { get { return (bit[n / 8] & (One << (7 - n % 8))) != 0; } set { if (value) bit[n / 8] |= (sbyte)(One << (7 - n % 8)); else bit[n / 8] &= (sbyte)~(One << (7 - n % 8)); } }
 }
